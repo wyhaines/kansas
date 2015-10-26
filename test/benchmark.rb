@@ -1,3 +1,4 @@
+require 'rubygems'
 require 'kansas'
 require 'dbi'
 require 'benchmark'

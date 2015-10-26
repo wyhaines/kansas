@@ -1,4 +1,3 @@
-puts "PATCHING"
 module DBI
 
   class Row

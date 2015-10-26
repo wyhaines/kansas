@@ -1,9 +1,9 @@
 #!/bin/bash
 
-ruby -I.. TC_NewWithoutDBH.rb
-ruby -I.. TC_NewWithDBH.rb
-ruby -I.. TC_SelectData.rb
-ruby -I.. TC_UpdateData.rb
-ruby -I.. TC_InsertData.rb
-ruby -I.. TC_DeleteData.rb
-ruby -I.. TC_Transactions.rb
+ruby -I../lib new_without_dbh_test.rb
+ruby -I../lib new_with_dbh_test.rb
+ruby -I../lib select_data_test.rb
+ruby -I../lib update_data_test.rb
+ruby -I../lib insert_data_test.rb
+ruby -I../lib delete_data_test.rb
+ruby -I../lib transactions_test.rb

@@ -31,7 +31,7 @@ class TC_SelectData < Test::Unit::TestCase
 	
 		assert_nothing_raised("Premature failure while creating the database handle during setup.") do
 			@dbh = DBI.connect("dbi:#{@params['vendor']}:#{@params['name']}:#{@params['host']}",@params['user'],@params['password'])
-			IO.foreach('create_tables.sql',';') do |line|
+			IO.foreach(File.join(File.dirname(__FILE__),'create_tables.sql'),';') do |line|
 				begin
 					@dbh.do line
 				rescue Exception => e
