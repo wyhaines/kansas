@@ -8,7 +8,13 @@ class KSToOne
 	end
 	
 	def get(parent)
-		parent.context.get_object(@foreignTable, [parent.row[@localField]])
+		if @foreignField != @foreignTable.primaries.first
+			sql = "SELECT * FROM #{@foreignTable.table_name} " +
+					"WHERE #{@foreignField} = '#{parent.row[@localField]}'" 
+			parent.context.select(@foreignTable, sql).first
+		else
+			parent.context.get_object(@foreignTable, [parent.row[@localField]])
+		end
 	end
 		
 	def set(parent, child)

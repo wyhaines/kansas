@@ -12,7 +12,7 @@ end
 
 class String
 	def expr_body
-		KSDatabase.sql_escape(self)
+		sql_escape(self)
 	end
 end
 
@@ -61,6 +61,7 @@ class KSExpression
 		statement << ' ORDER BY ' << @context.sort_fields.collect {|f| "#{f[0].respond_to?(:expr_body) ? f[0].expr_body : f[0].to_s} #{f[1]}"}.join(',') if @context.sort_fields.length > 0
 		statement << ' LIMIT ' << @context.limits.join(',') if @context.limits.length > 0
 		
+#File.open('/tmp/stmt.out','a+') {|fh| fh.puts statement}
 		statement
 	end
 	
@@ -262,10 +263,6 @@ class KSTableExpr < KSExpression
 			meth = KSExpression.method(name.to_s)
 			meth.call(args, &block)
 		end		
-	end
-
-	def all_fields
-		@table.fields
 	end
 
 	def respond_to?(method)

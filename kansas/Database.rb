@@ -18,6 +18,13 @@ require 'forwardable'
 #   map.
 #####
 
+# Escapes quotes inside of a SQL statement.
+# ToDo:  Make this obsolete by having all SQL statements use bind variables.
+
+def sql_escape(val)
+	"'" + val.to_s.gsub("'", "\\\\'") + "'"
+end
+
 class String
 
 	# Converts a string so that each initial letter after an underscore is
@@ -44,13 +51,6 @@ require 'drb'
 
 class KSDatabase
 
-# Escapes quotes inside of a SQL statement.
-# ToDo:  Make this obsolete by having all SQL statements use bind variables.
-
-	def KSDatabase.sql_escape(val)
-		"'" + val.to_s.gsub("'", "\\\\'") + "'"
-	end
-
 	include DRbUndumped
 
 	extend Forwardable
@@ -73,7 +73,7 @@ class KSDatabase
 		# If a database handle is passed in as the first arg, then the second should be an options has.
 		# If the first arg is a string, then it is assumed to be a dsn and the next two args will be
 		# username and password, followed by options.
-		if arg1.kind_of?(String)
+		if arg1.class == String
 			dsn = arg1
 			username = arg2
 			password = arg3
@@ -101,7 +101,7 @@ class KSDatabase
 	
 	# Set the parameters used for making a DBI connection.
 	
-  	def connect_using(dsn, user, password, options = {})
+ 	def connect_using(dsn, user, password, options = {})
 		@dsn = dsn
 		@user = user
 		@password = password
@@ -114,9 +114,22 @@ class KSDatabase
 	end
 	alias :newDbh :new_dbh
 
-  	def autocommit?
-  		@options[:autocommit]
-  	end
+	def query(*args,&blk)
+		error_recovery ||= false
+		yield(@dbh,*args)
+	rescue Exception => e
+		unless error_recovery
+			error_recovery = true
+			new_dbh
+			retry
+		else
+			raise e
+		end
+	end
+
+ 	def autocommit?
+ 		@options[:autocommit]
+ 	end
   	
   	def autocommit
   		autocommit?
@@ -157,8 +170,11 @@ class KSDatabase
  	# Updates the record in the database for the object.
  	
 	def store_object(object)
-		sql = build_update(object) + build_where(object)
-		@dbh.do(sql)
+		#sql = build_update(object) + build_where(object)
+		#query {|dbh| dbh.do(sql)}
+		rs = build_update(object)
+		sql = rs.first + build_where(object)
+		query {|dbh| dbh.do(sql,*rs.last)}
 	end
 
 	def get_table_from_string(table)
@@ -193,7 +209,7 @@ class KSDatabase
 					if final_flag
 						sql << table
 					else
-						self.map_all_tables(true)
+						self.map_all_tables
 						table = get_table_from_string(table)
 					end
 				end
@@ -230,6 +246,7 @@ class KSDatabase
 	#
 	# Note that select'd currently operates outside of the local rollback cache.
 	def select(*args)
+		error_recovery ||= false
 		results = []
 		tables,sql,read_only = check_query_args(*args)
 
@@ -244,15 +261,32 @@ class KSDatabase
 		
 		Kansas::log("select: '#{sql}'") if $DEBUG
 
-		rawResults = @dbh.select_all(sql) do |row|
-			results << add_object(tables[0].new.load(row.to_h, self, read_only))
+		rawResults = query do |dbh|
+			dbh.select_all(sql) do |row|
+				results << add_object(tables[0].new.load(row.to_h, self, read_only))
+			end
 		end
 
 		results
+	rescue DBI::DatabaseError => e
+		unless error_recovery
+			error_recovery = true
+			new_dbh
+			retry
+		else
+			raise e
+		end
+	end
+	
+	# Return only one value from a query.
+	
+	def select_first(*args,&blk)
+		select(*args) {|*yargs| blk.call(*yargs)}.first
 	end
 	
 	# Returns only a count of the records selected by the query.
 	def count(*args)
+		error_recovery ||= false
 		results = nil
 		tables,sql = check_query_args(*args)
 
@@ -267,11 +301,21 @@ class KSDatabase
 		
 		Kansas::log("select: '#{sql}'") if $DEBUG
 
-		rawResults = @dbh.select_all(sql) do |row|
-			results = row[0]
+		rawResults = query do |dbh|
+			dbh.select_all(sql) do |row|
+				results = row[0]
+			end
 		end
 
 		results
+	rescue DBI::DatabaseError => e
+		unless error_recovery
+			error_recovery = true
+			new_dbh
+			retry
+		else
+			raise e
+		end
 	end
 	
 	# A convenience usage of count().  Returns true if the query would return
@@ -291,6 +335,7 @@ class KSDatabase
 	# commit() is invoked.
 	
 	def delete(table, sql=nil)
+		error_recovery ||= false
 		table = table.to_s if table.kind_of?(Symbol)
 		
 		if table.kind_of?(String)
@@ -319,22 +364,32 @@ class KSDatabase
 		Kansas::log("delete: '#{sql}'") if $DEBUG
 
 		results = []
-		rawResults = @dbh.select_all(select_sql) do |row|
-			results.push add_object(table.new.load(row.to_h, self))
+		rawResults = query do |dbh|
+			dbh.select_all(select_sql) do |row|
+				results.push add_object(table.new.load(row.to_h, self))
+			end
 		end
 		
 		if autocommit?
-			@dbh.do delete_sql
+			query {|dbh| dbh.do delete_sql}
 		else
 			changed delete_sql
 		end
 		
-		return results
+		results
+	rescue DBI::DatabaseError => e
+		unless error_recovery
+			error_recovery = true
+			new_dbh
+			retry
+		else
+			raise e
+		end
 	end
 	
 	def delete_one(object)
 		sql = "DELETE FROM #{object.table_name} #{build_where(object)}"
-		result = @dbh.do sql
+		result = query {|dbh| dbh.do sql}
 		unregister_object object
 		result
 	end
@@ -350,7 +405,7 @@ class KSDatabase
 			elsif KSDatabase.partial_to_complete_map.has_key?(table)
 				table = self.class.const_get KSDatabase.partial_to_complete_map[table]
 			else
-				table = nil; #throw an exception here!
+				table = nil
 			end
 		end
 		
@@ -418,22 +473,24 @@ class KSDatabase
 	# Commit transaction to the database.
 	
 	def commit
-		@dbh.transaction do
-			@changed.uniq.each do |o|
-				if o.kind_of?(String)
-					@dbh.do o.to_s
-				elsif o.pending_deletion?
-					delete_one o
-				elsif o.serialized?
-					store_object o
-				else
-					insert_object o
+		query do |dbh|
+			dbh.transaction do
+				@changed.uniq.each do |o|
+					if o.kind_of?(String)
+						query {|innerdbh| innerdbh.do o.to_s}
+					elsif o.pending_deletion?
+						delete_one o
+					elsif o.serialized?
+						store_object o
+					else
+						insert_object o
+					end
+					o.rollback_buffer = []
 				end
-				o.rollback_buffer = []
+				@changed.clear
 			end
-			@changed.clear
+			dbh.commit
 		end
-		@dbh.commit
 	end
 
 	# Rollback uncommitted transactions on an object so that they never get
@@ -449,7 +506,7 @@ class KSDatabase
 			end
 			@changed.clear
 		end
-		@dbh.rollback
+		query {|dbh| dbh.rollback}
 	end
 
 	def changed(obj)
@@ -459,11 +516,12 @@ class KSDatabase
 		end
 	end
 	
-	def all_tables(reject = false)
-		@dbh.tables.each do |table_name|
-			next if reject and @remote_to_local_map.has_key?(table_name)
-			Kansas.log("Defining table: #{table_name} as #{canonical(table_name)}") if $DEBUG
-			table(canonical(table_name), table_name)
+	def all_tables
+		query do |dbh|
+			dbh.tables.each do |table_name|
+				Kansas.log("Defining table: #{table_name} as #{canonical(table_name)}") if $DEBUG
+				table(canonical(table_name), table_name)
+			end
 		end
 	end
 	alias :map_all_tables :all_tables
@@ -522,7 +580,7 @@ class KSDatabase
 			fields = table.fields.values.collect {|f| object.row[f] != nil ? f : nil}.compact
 			sql = "INSERT into #{table.table_name} (#{fields.join(',')}) VALUES ("
 			sql << fields.collect {|f| '?'}.join(',') << ')'
-			@dbh.do(sql,*fields.collect {|f| object.row[f] == KSNull ? nil : object.row[f]})
+			query {|dbh| dbh.do(sql,*fields.collect {|f| object.row[f] == KSNull ? nil : object.row[f]})}
 		end
 	end
 	
@@ -551,7 +609,7 @@ class KSDatabase
 		table = tableflag ? object : object.class
 		query = "SELECT * FROM #{table.table_name}" + build_where_from_key(object, key, tableflag)
 		row = nil
-		row = @dbh.select_one(query)
+		row = query {|dbh| dbh.select_one(query)}
 		if row
 			table.new.load(row.to_h, self)
 		else
@@ -576,16 +634,26 @@ class KSDatabase
 				val = key[i]
 			end
 			
-			where_ary.push "#{fields[i]} = #{KSDatabase.sql_escape(val)}"
+			where_ary.push "#{fields[i]} = #{sql_escape(val)}"
 		end
 		where + where_ary.join(' AND ')
 	end
   
 	def build_update(object)
+		vals = []
 		update = "UPDATE #{object.table_name} SET "
 		object.row.each do |field, val|
-			update << " #{field} = #{KSDatabase.sql_escape(val)},"
+			#update << " #{field} = #{sql_escape(val)},"
+			update << " #{field} = ?,"
+			vals << val
 		end
-		update.chop!		
+		[update.chop!,vals]
+		#update.chop!		
 	end
+
+	def build_select(table, criteria)
+		criteriaString = "WHERE #{criteria}" if criteria
+		"SELECT * FROM #{table.table_name} #{criteriaString}"
+	end
+
 end

@@ -27,8 +27,8 @@ end
 EOS
 	end
   
-  	# Adds a field to the list of fields that make up the primary key for the table.
-
+  	# A table can have more than one primary field?
+  	
 	def KSTable.primary(field)
 		if defined?(@primaries) && @primaries
 			@primaries << field unless @primaries.include?(field)
@@ -37,18 +37,9 @@ EOS
 		end
 	end
   
-	def KSTable.to_one(*args)
-		if args.kind_of(Hash)
-			name = args[:name]
-			local_field = args[:local_field]
-			foreign_table = args[:foreign_table]
-			foreign_field = args[:foreign_field]
-		else
-			name, local_field, foreign_table, foreign_field = args
-		end
-
+	def KSTable.to_one(name, local_field, foreign_table, foreign_field = nil)
 		foreign_table = foreign_table.to_s if foreign_table.class == Symbol
-		if foreign_table.kind_of?(String)
+		if foreign_table.class.to_s == 'String'
 			if KSDatabase.partial_to_complete_map.has_key?(foreign_table)
 				foreign_table = KSDatabase.const_get KSDatabase.partial_to_complete_map[foreign_table]
 			else
@@ -72,7 +63,7 @@ EOS
 
 	def KSTable.belongs_to(name, foreign_table, local_field, foreign_field = nil)
 		foreign_table = foreign_table.to_s if foreign_table.class == Symbol
-		if foreign_table.kind_of(String)
+		if foreign_table.class.to_s == 'String'
 			if KSDatabase.partial_to_complete_map.has_key?(foreign_table)
 				foreign_table = KSDatabase.const_get KSDatabase.partial_to_complete_map[foreign_table]
 			else
@@ -95,17 +86,8 @@ EOS
 	end
 
 	def KSTable.to_many(name, foreign_table, foreign_field, local_field = nil)
-		if args.kind_of(Hash)
-			name = args[:name]
-			foreign_table = args[:foreign_table]
-			foreign_field = args[:foreign_field]
-			local_field = args[:local_field]
-			sort_by = args[:sort_by]
-		else
-			name, foreign_table, foreign_field, local_field = args
-		end
-		foreign_table = foreign_table.to_s if foreign_table.kind_of?(Symbol)
-		if foreign_table.kind_of?(String)
+		foreign_table = foreign_table.to_s if foreign_table.class == Symbol
+		if foreign_table.class.to_s == 'String'
 			if KSDatabase.partial_to_complete_map.has_key?(foreign_table)
 				foreign_table = KSDatabase.const_get KSDatabase.partial_to_complete_map[foreign_table]
 			else
@@ -128,11 +110,13 @@ EOS
 	end
   
 	def KSTable.all_fields
-		database.dbh.columns(table_name).each do |descr|
-			fieldName = descr['name']
-			field(fieldName, fieldName, conversion(descr['type_name']))
-			if descr['primary']
-				primary fieldName
+		database.query do |dbh|
+			dbh.columns(table_name).each do |descr|
+				fieldName = descr['name']
+				field(fieldName, fieldName, conversion(descr['type_name']))
+				if descr['primary']
+					primary fieldName
+				end
 			end
 		end
 	end
@@ -142,11 +126,11 @@ EOS
 	end
   
 	def KSTable.table_name
-		self.const_get(:Name)
+		class_eval 'Name'
 	end
   
 	def KSTable.database
-		self.const_get(:Database)
+		class_eval 'Database'
 	end
   
 	def KSTable.fields
