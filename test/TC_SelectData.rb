@@ -1,3 +1,4 @@
+require 'rubygems'
 require 'test/unit'
 require 'kansas'
 require 'dbi'
@@ -42,6 +43,7 @@ class TC_SelectData < Test::Unit::TestCase
 		end
 		
 		assert_nothing_raised("Failed while mapping tables and setting up relationships.") do
+begin
 			@ksdbh = KSDatabase.new(@dbh)
 
 			# Define the tables.  The syntax is to give the local name and
@@ -70,6 +72,11 @@ ECODE
 			KSDatabase::Courses.module_eval <<ECODE
 				to_many(:students_taking, KSDatabase::CoursesTaken, "name")
 ECODE
+rescue Exception => e
+puts e
+puts e.backtrace.join("\n")
+raise e
+end
 		end
 	end
 
@@ -179,7 +186,7 @@ ECODE
 		end
 	end
 
-	def testSelects7
+	def testSelects8
 		puts "\nThe student with the lowest two student_number values and their Courses:\n"
 		
 		@ksdbh.select('Students') do |s|

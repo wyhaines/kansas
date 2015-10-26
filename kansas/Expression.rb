@@ -342,7 +342,7 @@ class KSFuncExpr < KSExpression
 	end
 	
 	def expr_body
-		"#{@func}(#{@args})"
+		"#{@func}(#{@args.join(',')})"
 	end
 end
 

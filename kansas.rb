@@ -1,5 +1,6 @@
 require 'dbi'
 require 'dbi/sql'
+require 'kansas/patch_dbi'
 require 'kansas/Database'
 require 'kansas/Table'
 require 'kansas/TableClass'

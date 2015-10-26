@@ -551,7 +551,7 @@ class KSDatabase
 		if defined?(@tables) && @tables
 			@tables[name] = table
 		else
-			@tables = {name, table}
+			@tables = {name => table}
 		end
 	end
 

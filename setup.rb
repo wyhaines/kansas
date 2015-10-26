@@ -32,9 +32,9 @@ end
 
 def self.config(name)
   # XXX use pathname
-  prefix = Regexp.quote(Config::CONFIG["prefix"])
-  exec_prefix = Regexp.quote(Config::CONFIG["exec_prefix"])
-  Config::CONFIG[name].gsub(/\A\/?(#{prefix}|#{exec_prefix})\/?/, '')
+  prefix = Regexp.quote(RbConfig::CONFIG["prefix"])
+  exec_prefix = Regexp.quote(RbConfig::CONFIG["exec_prefix"])
+  RbConfig::CONFIG[name].gsub(/\A\/?(#{prefix}|#{exec_prefix})\/?/, '')
 end
 
 SITE_DIRS = {
@@ -186,7 +186,7 @@ module Actions
             File.open(tmpfile, 'w', 0755) do |w|
               first = r.gets
               return unless SHEBANG_RE =~ first
-              w.print first.sub(SHEBANG_RE, '#!' + Config::CONFIG['ruby-prog'])
+              w.print first.sub(SHEBANG_RE, '#!' + RbConfig::CONFIG['ruby-prog'])
               w.write r.read
             end
           end
@@ -371,7 +371,7 @@ class PackageSpecification_1_0
   end
 
   def initialize(prefixes = nil, dirs = nil)
-    @prefix = Config::CONFIG["prefix"].gsub(/\A\//, '')
+    @prefix = RbConfig::CONFIG["prefix"].gsub(/\A\//, '')
     @translate = {}
     @prefixes = (prefixes || {}).dup
     KINDS.each { |kind|
@@ -401,7 +401,7 @@ class PackageSpecification_1_0
       __send__ kind, Dir["#{kind}/**/*"]
     }
     translate(:ext, "ext/*" => "", :inherit => true)
-    ext Dir["ext/**/*.#{Config::CONFIG['DLEXT']}"]
+    ext Dir["ext/**/*.#{RbConfig::CONFIG['DLEXT']}"]
   end
 
   def install
@@ -579,7 +579,7 @@ end # module Package
 #XXX incomplete setup.rb support for the hooks
 require 'rbconfig'
 def config(x)
-  Config::CONFIG[x]
+  RbConfig::CONFIG[x]
 end
 
 #{{{ small example

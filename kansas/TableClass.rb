@@ -147,7 +147,7 @@ EOS
 		if defined?(@fields) && @fields
 			@fields[name] = field
 		else
-			@fields = {name, field}
+			@fields = {name => field}
 		end
 	end
 
@@ -155,7 +155,7 @@ EOS
 		if defined?(@relations)
 			@relations[name] = relation
 		else
-			@relations = {name, relation}
+			@relations = {name => relation}
 		end
 	end
   

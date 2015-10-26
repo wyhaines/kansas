@@ -1,3 +1,4 @@
+require 'rubygems'
 require 'test/unit'
 require 'kansas'
 require 'dbi'
@@ -108,7 +109,7 @@ class TC_UpdateData < Test::Unit::TestCase
 		end
 		
 		puts "And Pete, not wanting to be left out, switches from LAW101 to ASL101."
-		pete = *@ksdbh.select('Students') {|s| (s.first_name == 'Pete')}
+		pete = @ksdbh.select('Students') {|s| (s.first_name == 'Pete')}.first
 		@ksdbh.select('CoursesTaken') {|ct| (ct.name == 'LAW101') & (ct.student_number == pete.student_number)}.each do |oldclass|
 			oldclass.name = 'ASL101'
 		end
