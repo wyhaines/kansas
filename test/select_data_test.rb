@@ -126,4 +126,18 @@ describe "select data" do
     end
   end
 
+  it "select with &, and != works" do
+    students = @ksdbh.select('Students') do |s|
+      s.student_number != 101
+    end.each do |student|
+      [100, 102, 103, 104, 105, 106].include?(student.student_number).must_equal true
+    end
+
+    students = @ksdbh.select('Students') do |s|
+      ( s.student_number != 101 ) && ( s.first_name != 'Pete' )
+    end.each do |student|
+      puts "#{student.first_name} -- #{student.student_number}"
+      [100, 102, 103, 104, 105, 106].include?(student.student_number).must_equal true
+    end
+  end
 end

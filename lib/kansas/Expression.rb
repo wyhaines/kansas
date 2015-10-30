@@ -61,7 +61,6 @@ class KSExpression
 		statement << ' ORDER BY ' << @context.sort_fields.collect {|f| "#{f[0].respond_to?(:expr_body) ? f[0].expr_body : f[0].to_s} #{f[1]}"}.join(',') if @context.sort_fields.length > 0
 		statement << ' LIMIT ' << @context.limits.join(',') if @context.limits.length > 0
 		
-#File.open('/tmp/stmt.out','a+') {|fh| fh.puts statement}
 		statement
 	end
 	
@@ -102,11 +101,8 @@ class KSExpression
 
 		fn = op ? op : name
 		class_eval <<-EOS
-def #{fn}(val)
-	#{name}.new(self, val, @context)
-end
+define_method(:"#{fn}") {|val| #{name}.new(self, val, @context) }
 EOS
-
 		alias_method name, op if op
 	end
 
@@ -116,9 +112,7 @@ EOS
 		const_set(name,opClass)
 		
 		class_eval <<-EOS
-def #{name}(*val)
-	#{name}.new(self,val,@context)
-end
+define_method(:"#{name}") {|*val| #{name}.new(self,val,@context) }
 EOS
 		alias_method op, name if op
 	end
@@ -129,9 +123,7 @@ EOS
 		const_set(name,opClass)
 		
 		class_eval <<-EOS
-def #{name}(*val)
-	#{name}.new(val, @context)
-end
+define_method(:"#{name}") {|*val| #{name}.new(val, @context) }
 EOS
 		alias_method op, name if op
 	end
@@ -142,9 +134,7 @@ EOS
 		const_set(name, opClass)
     
 		class_eval <<-EOS
-def #{name}
-    #{name}.new(self, @context)
-end
+define_method(:"#{name}") { #{name}.new(self, @context) }
 EOS
     
 		alias_method op, name if op
@@ -358,6 +348,7 @@ KSExpression.operator(:LIKE, "LIKE", :=~)
 KSExpression.operator(:EQ, "=", :==)
 KSExpression.operator(:NEQ, "<=>", :<=>)
 KSExpression.operator(:NOTEQ, "!=", :noteq)
+KSExpression.operator(:NOTEQ2, "!=", :'!=')
 KSExpression.unary_operator(:IS_NULL, "IS NULL", :is_null)
 KSExpression.unary_operator(:IS_NOT_NULL, "IS NOT NULL", :is_not_null)
 KSExpression.binary_function(:IN, "IN", :in)
