@@ -86,7 +86,7 @@ class KSTable
 	
 	def rollback
 		@rollback_buffer.reverse.each do |rbval|
-			if rbval.class == Array
+			if Array === rbval
 				@row[rbval[0]] = rbval[1]
 			else
 				@row = rbval.row

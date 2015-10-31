@@ -66,7 +66,12 @@ $ksdbh.commit # use ksdbh.rollback to revert the changes, instead
 ksdbh.transaction do
   first_record.field3 = "xyzzy"
   first_record.field4 = do_calculation
-  first_record.field4 < 100 ? ksdbh.rollback : ksdbh.commit
+
+  if first_record.field4 < 100
+    ksdbh.rollback
+  else
+    ksdbh.commit
+  end
 end
 ```
 

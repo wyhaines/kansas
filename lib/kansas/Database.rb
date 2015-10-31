@@ -73,7 +73,7 @@ class KSDatabase
 		# If a database handle is passed in as the first arg, then the second should be an options has.
 		# If the first arg is a string, then it is assumed to be a dsn and the next two args will be
 		# username and password, followed by options.
-		if arg1.class == String
+		if String === arg1
 			dsn = arg1
 			username = arg2
 			password = arg3
@@ -348,7 +348,7 @@ class KSDatabase
 			end
 		end
 
-		unless table.class == Class
+		unless Class === table
 			raise KSBadTable,"KSBadTable: #{table} is not a valid table."
 		end
 

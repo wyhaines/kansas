@@ -213,7 +213,7 @@ class KSTableExpr < KSExpression
   	
   	def sort_by(*exprs)
   		exprs.each do |sort_field|
-  			if sort_field.class == Hash
+  			if Hash === sort_field
   				sort_field.each_pair do |k,v|
   					/desc/i.match(v) ? 'DESC' : 'ASC'
   					@context.sort_fields.push [k,v]

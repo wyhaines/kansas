@@ -38,7 +38,7 @@ EOS
 	end
   
 	def KSTable.to_one(name, local_field, foreign_table, foreign_field = nil)
-		foreign_table = foreign_table.to_s if foreign_table.class == Symbol
+		foreign_table = foreign_table.to_s if Symbol === foreign_table
 		if foreign_table.class.to_s == 'String'
 			if KSDatabase.partial_to_complete_map.has_key?(foreign_table)
 				foreign_table = KSDatabase.const_get KSDatabase.partial_to_complete_map[foreign_table]
@@ -62,7 +62,7 @@ EOS
 	end
 
 	def KSTable.belongs_to(name, foreign_table, local_field, foreign_field = nil)
-		foreign_table = foreign_table.to_s if foreign_table.class == Symbol
+		foreign_table = foreign_table.to_s if Symbol === foreign_table
 		if foreign_table.class.to_s == 'String'
 			if KSDatabase.partial_to_complete_map.has_key?(foreign_table)
 				foreign_table = KSDatabase.const_get KSDatabase.partial_to_complete_map[foreign_table]
@@ -86,7 +86,7 @@ EOS
 	end
 
 	def KSTable.to_many(name, foreign_table, foreign_field, local_field = nil)
-		foreign_table = foreign_table.to_s if foreign_table.class == Symbol
+		foreign_table = foreign_table.to_s if Symbol === foreign_table
 		if foreign_table.class.to_s == 'String'
 			if KSDatabase.partial_to_complete_map.has_key?(foreign_table)
 				foreign_table = KSDatabase.const_get KSDatabase.partial_to_complete_map[foreign_table]
