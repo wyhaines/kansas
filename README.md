@@ -24,7 +24,56 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+ksdbh = KSDatabase.new("dbi:Mysql:DBNAME:DBHOST", USERNAME, PASSWORD)
+ksdbh.map_all_tables
+```
+
+```ruby
+# Equivalent to:
+#     select * from table_as_classname
+all_rows = ksdbh.select(:TableAsClassname)
+```
+
+```ruby
+# Equivalent to:
+#     select * from table_as_classname where field = "blah"
+some_rows = ksdbh.select(:TableAsClassname) {|t| t.field == "blah"}
+```
+
+```ruby
+# Equivalent to:
+#     select * from table table_as_classname where field = "blah" and field2 > 100 and field3 between(3,6)
+some_rows = ksdbh.select(:TableAsClassname) {|t| ( t.field == "blah" ) & ( t.field2 > 100 ) & (t.field3.between(3,6) }
+```
+
+```ruby
+first_record = some_rows.first
+# Unless autocommit is set to false, this will update the database synchronously
+first_record.field4 = "more stuff"
+```
+
+```ruby
+# Implied transactions
+ksdbh.autcommit = false
+first_record.field = "bleargh"
+first_record.field2 = 1000
+$ksdbh.commit # use ksdbh.rollback to revert the changes, instead
+```
+
+```ruby
+# Explicit transitions via a block
+ksdbh.transaction do
+  first_record.field3 = "xyzzy"
+  first_record.field4 = do_calculation
+  first_record.field4 < 100 ? ksdbh.rollback : ksdbh.commit
+end
+```
+
+```ruby
+# Delete a record
+first_record.delete
+```
 
 ## Development
 
