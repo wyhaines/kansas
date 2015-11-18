@@ -6,7 +6,7 @@ require 'forwardable'
 #  will be better exception handling), better code organization, more comments,
 #  and more consistency in the use of snake_case.
 #  If you want to spend a little time helping out, I welcome patches.
-#  khaines@enigo.com
+#  wyhaines@gmail.com
 #####
 
 #####
@@ -25,6 +25,7 @@ def sql_escape(val)
 	"'" + val.to_s.gsub("'", "\\\\'") + "'"
 end
 
+# TODO: Let's not have egregious monkey patches, mkay?
 class String
 
 	# Converts a string so that each initial letter after an underscore is

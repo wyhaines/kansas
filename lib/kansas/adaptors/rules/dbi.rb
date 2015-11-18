@@ -1,6 +1,6 @@
 KSAdaptors << KSAdaptorRule.new(
-	:name => 'General DBI Adaptor',
-	:description => 'Provides a generalized access to DBI; this is equivalent to the behavior of the legacy Kansas.',
+	:name => 'DBI Adaptor',
+	:description => 'Provides database access via DBI; this is equivalent to the behavior of the legacy Kansas.',
 	:file => '',
 	:priority => 1000
 	) {|args|

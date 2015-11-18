@@ -1,3 +1,7 @@
+# This is a superclass that represents the standard set of methods that
+# Kansas uses to construct SQL. Adaptors for specific databases may want
+# to subclass this to provide capabilities tuned to that data storage engine.
+
 class Object
 	def expr_body
 		to_s
