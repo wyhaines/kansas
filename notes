@@ -22,7 +22,7 @@ Multiple databases should be mappable in Kansas at the same time, and each shoul
 
 Use database name as part of the classname?  So a db foo with a table bar would have its real name as:
 
-KSDatabse::Foo::Bar
+KSDatabase::Foo::Bar
 
 But could be referred to via the shorthand of KSDatabase::Bar on a first come, first served basis?
 i.e. if two different databases, each containing a table 'bar', are mapped, only the first table is accessible as KSDatabse::Bar.

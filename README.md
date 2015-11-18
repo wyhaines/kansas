@@ -24,6 +24,8 @@ Or install it yourself as:
 
 ## Usage
 
+With Kansas, queries are built using Ruby code, with some concessions to syntax because some Ruby operations are implemented as keywords, such as '&&', and thus can't be co-opted, while '&' is simply a method, and can be.
+
 ```ruby
 ksdbh = KSDatabase.new("dbi:Mysql:DBNAME:DBHOST", USERNAME, PASSWORD)
 ksdbh.map_all_tables
@@ -44,7 +46,11 @@ some_rows = ksdbh.select(:TableAsClassname) {|t| t.field == "blah"}
 ```ruby
 # Equivalent to:
 #     select * from table table_as_classname where field = "blah" and field2 > 100 and field3 between(3,6)
-some_rows = ksdbh.select(:TableAsClassname) {|t| ( t.field == "blah" ) & ( t.field2 > 100 ) & (t.field3.between(3,6) }
+some_rows = ksdbh.select(:TableAsClassname) do |t|
+  ( t.field == "blah" ) &
+  ( t.field2 > 100 ) &
+  ( t.field3.between(3,6) )
+end
 ```
 
 ```ruby
