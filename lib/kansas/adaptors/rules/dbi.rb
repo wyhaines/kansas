@@ -1,8 +1,16 @@
-KSAdaptors << KSAdaptorRule.new(
-	:name => 'DBI Adaptor',
-	:description => 'Provides database access via DBI; this is equivalent to the behavior of the legacy Kansas.',
-	:file => '',
-	:priority => 1000
-	) {|args|
-	# This code block determines if this adaptor might be able to handle the request.
-	}
+module Kansas
+  class Adaptors
+    module Rules
+      class DBI < Rule
+        Trigger = Proc.new do |*args|
+          args.first =~ /^dbi/i
+        end
+
+        Loader = Proc.new do
+          require 'kansas/adaptors/dbi'
+          Kansas::Adaptors::DBI
+        end
+      end
+    end
+  end
+end
