@@ -16,5 +16,3 @@ module Kansas
 end    
 
 KS = Kansas
-
-# TODO: Move the monkeypatch to it's own file.
