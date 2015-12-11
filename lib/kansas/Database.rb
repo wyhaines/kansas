@@ -42,15 +42,17 @@ class String
 	
 end
 
-class KSBadTable < Exception;end
-class KSNoTable < Exception;end
-class KSBadFieldName < Exception;end
-class KSRollback < Exception;end
-class KSNull < NilClass;end
+module Kansas
+  class BadTable < Exception;end
+  class NoTable < Exception;end
+  class BadFieldName < Exception;end
+  class Rollback < Exception;end
+  class Null < NilClass;end
+end
 
 require 'drb'
 
-class KSDatabase
+class Database
 
 	include DRbUndumped
 
@@ -59,7 +61,7 @@ class KSDatabase
 	
 	@@partial_to_complete_map = {}
 	
-	def KSDatabase.partial_to_complete_map
+	def Database.partial_to_complete_map
 		@@partial_to_complete_map
 	end
 	
@@ -179,8 +181,8 @@ class KSDatabase
 	end
 
 	def get_table_from_string(table)
-		if KSDatabase.partial_to_complete_map.has_key?(table)
-			table = self.class.const_get KSDatabase.partial_to_complete_map[table]
+		if Database.partial_to_complete_map.has_key?(table)
+			table = self.class.const_get Database.partial_to_complete_map[table]
 		elsif @remote_to_local_map.has_key?(table)
 			table = self.class.const_get @remote_to_local_map[table]
 		else
@@ -220,11 +222,11 @@ class KSDatabase
 		
 		unless sql != ''
 			if tables.length == 0
-				raise KSNoTable, "KSNoTable: No valid tables were found to operate against."
+				raise NoTable, "NoTable: No valid tables were found to operate against."
 			else
 				tables.each do |t|
 					unless t.respond_to?(:is_a_kstable?)
-						raise KSBadTable.new,"KSBadTable: #{t} is not a valid table."
+						raise BadTable.new,"BadTable: #{t} is not a valid table."
 					end
 				end
 			end
@@ -239,7 +241,7 @@ class KSDatabase
 	# given as the second argument, that statement will be used.  If no
 	# statement was given, the default is to select * from the table provided
 	# as the first argument.  The table can either be specified by passing
-	# the class for the table to use (e.x. KSDatabase::Students), by passing
+	# the class for the table to use (e.x. Kansas::Database::Students), by passing
 	# the remote name (i.e. the name of the actual database table), or by
 	# passing the local name for the table that was given when mapping the
 	# table. Most of the time the local name or the remote name should be
@@ -252,8 +254,8 @@ class KSDatabase
 		tables,sql,read_only = check_query_args(*args)
 
 		if block_given?
-			context = KSExpression::Context.new(*tables)
-			yield_args = tables.collect {|t| KSTableExpr.new(t,context)}
+			context = Expression::Context.new(*tables)
+			yield_args = tables.collect {|t| TableExpr.new(t,context)}
 			queryExpr = yield *yield_args
 			sql = queryExpr.select_sql
 		elsif sql == ''
@@ -292,8 +294,8 @@ class KSDatabase
 		tables,sql = check_query_args(*args)
 
 		if block_given?
-			context = KSExpression::Context.new(*tables)
-			yield_args = tables.collect {|t| KSTableExpr.new(t,context)}
+			context = Expression::Context.new(*tables)
+			yield_args = tables.collect {|t| TableExpr.new(t,context)}
 			queryExpr = yield *yield_args
 			sql = queryExpr.count_sql
 		elsif sql == ''
@@ -342,19 +344,19 @@ class KSDatabase
 		if table.kind_of?(String)
 			if @remote_to_local_map.has_key?(table)
 				table = self.class.const_get @remote_to_local_map[table]
-			elsif KSDatabase.partial_to_complete_map.has_key?(table)
-				table = self.class.const_get KSDatabase.partial_to_complete_map[table]
+			elsif Database.partial_to_complete_map.has_key?(table)
+				table = self.class.const_get Database.partial_to_complete_map[table]
 			else
 				table = nil
 			end
 		end
 
 		unless Class === table
-			raise KSBadTable,"KSBadTable: #{table} is not a valid table."
+			raise BadTable,"BadTable: #{table} is not a valid table."
 		end
 
 		if block_given?
-			queryExpr = yield KSTableExpr.new(table)
+			queryExpr = yield TableExpr.new(table)
 			select_sql = queryExpr.sql
 			delete_sql = queryExpr.delete_sql
 		elsif sql == nil
@@ -403,8 +405,8 @@ class KSDatabase
 		if table.kind_of? String
 			if @remote_to_local_map.has_key?(table)
 				table = self.class.const_get @remote_to_local_map[table]
-			elsif KSDatabase.partial_to_complete_map.has_key?(table)
-				table = self.class.const_get KSDatabase.partial_to_complete_map[table]
+			elsif Database.partial_to_complete_map.has_key?(table)
+				table = self.class.const_get Database.partial_to_complete_map[table]
 			else
 				table = nil
 			end
@@ -457,7 +459,7 @@ class KSDatabase
   			commit
   			yield self
    			commit
-  		rescue KSRollback
+  		rescue Rollback
   			# We caught a Rollback; this isn't really an error.
   			@transaction_flag = false
   			rollback
@@ -499,7 +501,7 @@ class KSDatabase
 	
 	def rollback
 		if @transaction_flag
-			raise KSRollback
+			raise Rollback
 		else
 			@changed.uniq.each do |o|
 				next if o.kind_of?(String)
@@ -534,13 +536,13 @@ class KSDatabase
 		
 		old_local_name = local_name
 		local_name  = make_constant_name(local_name)
-		table = Class.new(KSTable)
+		table = Class.new(Table)
 		table.const_set('Name', remote_name)
 		table.const_set('Database', self)
 		table.all_fields
 		
 		@remote_to_local_map[remote_name] = local_name
-		KSDatabase.partial_to_complete_map[old_local_name] = local_name
+		Database.partial_to_complete_map[old_local_name] = local_name
 		addTable(local_name, table)
 	end
 	alias :map_table :table
@@ -573,7 +575,7 @@ class KSDatabase
   	# overriding value be inserted into the field, any field that has a nil
   	# value is omitted from the insert statement.  To explicity place a
   	# null value in a field when inserting into the database, use
-  	# KSNull as the value of the field.
+  	# Null as the value of the field.
 	
 	def insert_object(object)
 		unless object.serialized?
@@ -581,7 +583,7 @@ class KSDatabase
 			fields = table.fields.values.collect {|f| object.row[f] != nil ? f : nil}.compact
 			sql = "INSERT into #{table.table_name} (#{fields.join(',')}) VALUES ("
 			sql << fields.collect {|f| '?'}.join(',') << ')'
-			query {|dbh| dbh.do(sql,*fields.collect {|f| object.row[f] == KSNull ? nil : object.row[f]})}
+			query {|dbh| dbh.do(sql,*fields.collect {|f| object.row[f] == Null ? nil : object.row[f]})}
 		end
 	end
 	
