@@ -409,7 +409,8 @@ class KSDatabase
 			end
 		end
 		
-                rowdata.each do |k,v|
+                
+                rowdata.dup.each do |k,v|
                         if k.is_a?(Symbol)
                                 rowdata.delete(k)
                                 rowdata[k.to_s] = v
